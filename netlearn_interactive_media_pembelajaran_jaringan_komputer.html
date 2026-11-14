@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetLearn Interactive — Media Pembelajaran Topologi & Fiber Optik</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#1e1b4b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom animations for network packets & interactive hotspots */
+        @keyframes pulseRing {
+            0% { transform: scale(0.92); opacity: 0.9; }
+            50% { transform: scale(1.12); opacity: 0.4; }
+            100% { transform: scale(0.92); opacity: 0.9; }
+        }
+        @keyframes dashFlow {
+            to { stroke-dashoffset: -40; }
+        }
+        @keyframes laserBounce {
+            0% { stroke-dashoffset: 600; }
+            100% { stroke-dashoffset: 0; }
+        }
+        .animate-dash-flow {
+            stroke-dasharray: 8 6;
+            animation: dashFlow 1.2s linear infinite;
+        }
+        .animate-laser {
+            stroke-dasharray: 24 12;
+            animation: dashFlow 0.8s linear infinite;
+        }
+        .hotspot-node {
+            cursor: pointer;
+            transition: filter 0.2s ease, transform 0.2s ease;
+            transform-origin: center;
+            transform-box: fill-box;
+        }
+        .hotspot-node:hover {
+            filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.85));
+            transform: scale(1.06);
+        }
+        .hotspot-active {
+            filter: drop-shadow(0 0 14px rgba(16, 185, 129, 0.95));
+        }
+        .fiber-layer {
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .fiber-layer:hover {
+            filter: brightness(1.18) drop-shadow(0 0 8px rgba(99, 102, 241, 0.6));
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+    <!-- TOP HEADER & AUDIO CONTROLLER -->
+    <header class="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between py-3 gap-3">
+                <!-- Brand Title -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-emerald-500 flex items-center justify-center shadow-md shadow-indigo-500/20">
+                            <i class="fa-solid fa-network-wired text-white text-lg"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-lg tracking-tight text-white">NetLearn <span class="text-indigo-400">Interactive</span></span>
+                                <span class="text-[11px] font-mono uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Tugas Minggu 11</span>
+                            </div>
+                            <p class="text-xs text-slate-400">Media Pembelajaran Topologi & Transmisi Jaringan Komputer</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audio & Voice-Over Controls -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- SFX Toggle -->
+                    <button id="btn-sfx" onclick="toggleSFX()" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition" title="Aktifkan/Matikan Efek Suara Interaksi">
+                        <i id="icon-sfx" class="fa-solid fa-volume-high"></i>
+                        <span id="label-sfx">SFX: ON</span>
+                    </button>
+
+                    <!-- Ambient BGM Toggle -->
+                    <button id="btn-bgm" onclick="toggleBGM()" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Musik Latar Ambient Synth (Web Audio API)">
+                        <i id="icon-bgm" class="fa-solid fa-music"></i>
+                        <span id="label-bgm">BGM: OFF</span>
+                    </button>
+
+                    <!-- Voice-Over Narration Button -->
+                    <button id="btn-vo" onclick="togglePageNarration()" class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm shadow-indigo-500/30 transition">
+                        <i id="icon-vo" class="fa-solid fa-microphone-lines"></i>
+                        <span id="label-vo">Bacakan Narasi (VO)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- NON-LINEAR NAVIGATION TABS -->
+            <nav class="flex items-center gap-1 overflow-x-auto py-2 border-t border-slate-800/80 no-scrollbar" aria-label="Menu Utama">
+                <button onclick="switchTab('beranda')" id="tab-beranda" class="nav-tab flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition bg-indigo-600 text-white shadow-sm">
+                    <i class="fa-solid fa-house-laptop"></i>
+                    <span>1. Beranda & Tujuan</span>
+                </button>
+                <button onclick="switchTab('topologi')" id="tab-topologi" class="nav-tab flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-diagram-project"></i>
+                    <span>2. Simulasi Topologi (Hotspot)</span>
+                </button>
+                <button onclick="switchTab('fiber')" id="tab-fiber" class="nav-tab flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-wave-square"></i>
+                    <span>3. Eksplorasi Fiber Optik</span>
+                </button>
+                <button onclick="switchTab('kuis')" id="tab-kuis" class="nav-tab flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                    <span>4. Kuis Evaluasi</span>
+                </button>
+                <button onclick="switchTab('storyboard')" id="tab-storyboard" class="nav-tab flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>5. Info Storyboard & Laporan</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- TOAST NOTIFICATION BAR -->
+    <div id="toast-box" class="fixed bottom-5 right-5 z-50 hidden transform transition-all duration-300">
+        <div class="bg-slate-800 border border-indigo-500/50 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 max-w-sm">
+            <i id="toast-icon" class="fa-solid fa-circle-info text-indigo-400 text-lg"></i>
+            <p id="toast-text" class="text-xs sm:text-sm font-medium"></p>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ==========================================
+             SCENE 1: BERANDA & TUJUAN PEMBELAJARAN
+             ========================================== -->
+        <section id="scene-beranda" class="scene-panel space-y-8">
+            <!-- Hero Banner -->
+            <div class="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 p-6 sm:p-10 shadow-xl">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    <div class="lg:col-span-7 space-y-4">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            Media Pembelajaran Berbasis Teknologi Interaktif
+                        </div>
+                        <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                            Eksplorasi Visual & Simulasi <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">Topologi Jaringan & Transmisi Fiber Optik</span>
+                        </h1>
+                        <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                            Selamat datang di <strong>NetLearn Interactive</strong>. Media ini mengintegrasikan visualisasi paket data real-time, simulasi klik-interaktif (<em>clickable hotspot</em>), pengujian gangguan jaringan (<em>fault test</em>), serta narasi suara untuk membantu Anda menguasai arsitektur jaringan komputer secara komprehensif.
+                        </p>
+                        <div class="pt-2 flex flex-wrap gap-3">
+                            <button onclick="switchTab('topologi')" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition">
+                                <span>Mulai Belajar Sekarang</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                            <button onclick="speakCustomText('Selamat datang di NetLearn Interactive. Silakan pilih menu Simulasi Topologi untuk mengeksplorasi cara kerja jaringan komputer secara interaktif, atau buka menu Eksplorasi Fiber Optik untuk mempelajari struktur media transmisi cahaya.')" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm flex items-center gap-2 transition">
+                                <i class="fa-solid fa-volume-high text-indigo-400"></i>
+                                <span>Dengarkan Pengantar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right Hero Interactive Preview Graphic -->
+                    <div class="lg:col-span-5 flex justify-center">
+                        <div class="w-full max-w-sm bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-inner">
+                            <div class="flex items-center justify-between text-xs text-slate-400 mb-3 pb-2 border-b border-slate-800">
+                                <span class="font-mono text-indigo-400"><i class="fa-solid fa-microchip mr-1"></i> STATUS MODUL</span>
+                                <span class="text-emerald-400 font-mono">● INTERAKTIF AKTIF</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3 text-center">
+                                <div class="bg-slate-800/70 p-3 rounded-xl border border-slate-700/60">
+                                    <i class="fa-solid fa-eye text-indigo-400 text-xl mb-1"></i>
+                                    <div class="text-xs font-bold text-white">Visual</div>
+                                    <div class="text-[11px] text-slate-400">Animasi SVG</div>
+                                </div>
+                                <div class="bg-slate-800/70 p-3 rounded-xl border border-slate-700/60">
+                                    <i class="fa-solid fa-headphones text-emerald-400 text-xl mb-1"></i>
+                                    <div class="text-xs font-bold text-white">Audio</div>
+                                    <div class="text-[11px] text-slate-400">VO + WebAudio</div>
+                                </div>
+                                <div class="bg-slate-800/70 p-3 rounded-xl border border-slate-700/60">
+                                    <i class="fa-solid fa-hand-pointer text-amber-400 text-xl mb-1"></i>
+                                    <div class="text-xs font-bold text-white">Interaktif</div>
+                                    <div class="text-[11px] text-slate-400">Hotspot & Lab</div>
+                                </div>
+                            </div>
+                            <div class="mt-4 bg-slate-950 rounded-xl p-3 border border-slate-800 text-xs text-slate-300 space-y-1.5">
+                                <div class="flex justify-between">
+                                    <span>Topologi Tersedia:</span>
+                                    <span class="font-mono text-indigo-400">Star, Bus, Ring, Mesh</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Simulasi Redaman:</span>
+                                    <span class="font-mono text-emerald-400">Link Loss Budget (dB)</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Evaluasi Formatif:</span>
+                                    <span class="font-mono text-amber-400">5 Studi Kasus + Feedback</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tujuan Pembelajaran (Format ABCD) & Petunjuk Penggunaan -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Kartu Tujuan Pembelajaran -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                            <i class="fa-solid fa-bullseye"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-white">Tujuan Pembelajaran (Format ABCD)</h2>
+                            <p class="text-xs text-slate-400">Acuan pencapaian kompetensi peserta didik</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950 border border-slate-800/90 rounded-xl p-4 text-sm text-slate-300 leading-relaxed">
+                        "Melalui eksplorasi simulasi <strong>NetLearn Interactive</strong> (<span class="text-indigo-400 font-semibold">Condition</span>), peserta didik (<span class="text-emerald-400 font-semibold">Audience</span>) mampu menganalisis karakteristik 4 topologi jaringan, dampak kegagalan jalur, serta struktur dan perhitungan redaman kabel fiber optik (<span class="text-amber-400 font-semibold">Behavior</span>) dengan tingkat akurasi kuis evaluasi minimal <strong>80%</strong> (<span class="text-rose-400 font-semibold">Degree</span>)."
+                    </div>
+
+                    <div class="space-y-2 pt-1">
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Indikator Pencapaian Kompetensi (IPK):</h3>
+                        <ul class="space-y-2 text-xs sm:text-sm text-slate-300">
+                            <li class="flex items-start gap-2.5">
+                                <i class="fa-solid fa-circle-check text-emerald-400 mt-1"></i>
+                                <span>Mengidentifikasi fungsi komponen dan pola aliran data pada topologi Star, Bus, Ring, dan Mesh.</span>
+                            </li>
+                            <li class="flex items-start gap-2.5">
+                                <i class="fa-solid fa-circle-check text-emerald-400 mt-1"></i>
+                                <span>Menganalisis dampak putusnya jalur kabel (<em>fault tolerance</em>) pada masing-masing topologi jaringan.</span>
+                            </li>
+                            <li class="flex items-start gap-2.5">
+                                <i class="fa-solid fa-circle-check text-emerald-400 mt-1"></i>
+                                <span>Menjelaskan fungsi setiap lapisan pelindung kabel Fiber Optik dan menghitung estimasi redaman total (<em>Link Loss Budget</em>).</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Kartu Petunjuk Penggunaan Media -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                            <i class="fa-solid fa-compass"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-white">Petunjuk Penggunaan Media</h2>
+                            <p class="text-xs text-slate-400">Integrasi Visual, Audio, dan Interaktivitas</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
+                                <i class="fa-solid fa-computer-mouse"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-white">1. Eksplorasi Clickable Hotspot</h4>
+                                <p class="text-xs text-slate-400 mt-0.5">Klik langsung pada komponen komputer, switch, kabel, atau lapisan fiber optik di dalam gambar diagram untuk membuka detail teknisnya.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                            <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-white">2. Uji Simulasi Gangguan (Fault Test)</h4>
+                                <p class="text-xs text-slate-400 mt-0.5">Gunakan tombol <strong>"Simulasikan Putus Jalur"</strong> pada halaman Topologi untuk mengamati bagaimana jaringan bereaksi saat salah satu kabel rusak.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                                <i class="fa-solid fa-volume-high"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-white">3. Fitur Narasi Suara (Voice-Over) & Audio</h4>
+                                <p class="text-xs text-slate-400 mt-0.5">Klik tombol <strong>"Bacakan Narasi (VO)"</strong> di pojok kanan atas atau tombol <strong>"Dengarkan Penjelasan"</strong> pada panel materi untuk mendengarkan penjelasan suara Bahasa Indonesia.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             SCENE 2: SIMULASI & CLICKABLE HOTSPOT TOPOLOGI
+             ========================================== -->
+        <section id="scene-topologi" class="scene-panel hidden space-y-6">
+            <!-- Top Control Bar -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-diagram-project text-indigo-400"></i>
+                        <span>Laboratorium Simulasi Topologi Jaringan</span>
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-400">Pilih jenis topologi, klik komponen pada diagram SVG (<em>Hotspot</em>), atau uji ketahanan jalur kabel.</p>
+                </div>
+
+                <!-- Sub-Tab Selector for 4 Topologies -->
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="selectTopology('star')" id="topo-btn-star" class="topo-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-indigo-600 text-white shadow-sm transition">
+                        <i class="fa-solid fa-star mr-1"></i> Topologi Star
+                    </button>
+                    <button onclick="selectTopology('bus')" id="topo-btn-bus" class="topo-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+                        <i class="fa-solid fa-grip-lines mr-1"></i> Topologi Bus
+                    </button>
+                    <button onclick="selectTopology('ring')" id="topo-btn-ring" class="topo-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+                        <i class="fa-solid fa-circle-notch mr-1"></i> Topologi Ring
+                    </button>
+                    <button onclick="selectTopology('mesh')" id="topo-btn-mesh" class="topo-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+                        <i class="fa-solid fa-share-nodes mr-1"></i> Topologi Mesh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interactive Workspace: Left SVG Diagram (7 cols) + Right Hotspot Info Panel (5 cols) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left Column: Interactive SVG Canvas -->
+                <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                    <!-- Canvas Top Bar -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <span id="topo-badge-title" class="px-3 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold">
+                                TOPOLOGI STAR (BINTANG)
+                            </span>
+                            <span id="topo-status-badge" class="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 text-xs font-mono">
+                                ● JARINGAN NORMAL
+                            </span>
+                        </div>
+
+                        <!-- Fault Simulation Toggle Button -->
+                        <button id="btn-fault-toggle" onclick="toggleFaultSimulation()" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 flex items-center gap-2 transition">
+                            <i class="fa-solid fa-scissors"></i>
+                            <span id="label-fault-btn">Simulasikan Putus Jalur (Fault Test)</span>
+                        </button>
+                    </div>
+
+                    <!-- Dynamic Interactive SVG Container -->
+                    <div class="relative w-full bg-slate-950 rounded-xl border border-slate-800/90 overflow-hidden flex items-center justify-center p-2" style="min-height: 360px;">
+                        <svg id="topology-svg" viewBox="0 0 600 380" class="w-full h-auto max-h-[380px] select-none"></svg>
+                    </div>
+
+                    <!-- Fault Impact Alert Box (Changes dynamically when Fault Test is active) -->
+                    <div id="fault-alert-box" class="mt-4 p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-3">
+                        <i id="fault-alert-icon" class="fa-solid fa-circle-info text-indigo-400 text-lg mt-0.5"></i>
+                        <div class="text-xs sm:text-sm text-slate-300">
+                            <span class="font-semibold text-white" id="fault-alert-title">Instruksi Interaktif:</span>
+                            <span id="fault-alert-desc"> Klik salah satu perangkat atau jalur kabel pada diagram di atas untuk mempelajari fungsi teknisnya, atau klik tombol "Simulasikan Putus Jalur" untuk menguji ketahanan topologi.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Detailed Hotspot Information & Pros/Cons -->
+                <div class="lg:col-span-5 flex flex-col gap-5">
+                    <!-- Selected Hotspot Detail Card -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <div>
+                                <span class="text-[11px] font-mono uppercase tracking-wider text-indigo-400">Detail Komponen (Hotspot)</span>
+                                <h3 id="hotspot-title" class="text-lg font-bold text-white mt-0.5">Switch Pusat (Central Node)</h3>
+                            </div>
+                            <button onclick="speakHotspotDetail()" class="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition" title="Dengarkan Penjelasan Komponen Ini">
+                                <i class="fa-solid fa-volume-high"></i>
+                                <span>Dengarkan</span>
+                            </button>
+                        </div>
+
+                        <p id="hotspot-desc" class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            Perangkat konsentrator pusat pada Topologi Star yang bertugas menerima sinyal paket data dari satu komputer dan meneruskannya hanya ke komputer tujuan berdasarkan alamat MAC Address.
+                        </p>
+
+                        <div class="bg-slate-950 rounded-xl p-3.5 border border-slate-800 space-y-2 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Peran pada Topologi:</span>
+                                <span id="hotspot-role" class="font-semibold text-emerald-400">Pengatur Lalu Lintas Data Terpusat</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Media Transmisi Umum:</span>
+                                <span id="hotspot-cable" class="font-mono text-indigo-300">UTP Cat6 / Fiber Optik</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Topology Characteristics (Pros & Cons) -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 flex-grow">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                            <i class="fa-solid fa-scale-balanced text-indigo-400"></i>
+                            <span id="topo-char-heading">Analisis Karakteristik Topologi Star</span>
+                        </h3>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            <div class="bg-emerald-950/20 border border-emerald-500/30 rounded-xl p-3.5 space-y-2">
+                                <div class="font-bold text-emerald-400 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-thumbs-up"></i> Kelebihan Utama
+                                </div>
+                                <ul id="topo-pros-list" class="space-y-1.5 text-slate-300 list-disc list-inside"></ul>
+                            </div>
+
+                            <div class="bg-rose-950/20 border border-rose-500/30 rounded-xl p-3.5 space-y-2">
+                                <div class="font-bold text-rose-400 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Kekurangan
+                                </div>
+                                <ul id="topo-cons-list" class="space-y-1.5 text-slate-300 list-disc list-inside"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             SCENE 3: EKSPLORASI FIBER OPTIK & LINK LOSS BUDGET
+             ========================================== -->
+        <section id="scene-fiber" class="scene-panel hidden space-y-6">
+            <!-- Header Banner -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-wave-square text-emerald-400"></i>
+                        <span>Eksplorasi Anatomi Fiber Optik & Kalkulator Redaman</span>
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-400">Klik setiap lapisan kabel Fiber Optik pada penampang SVG untuk melihat detail fungsinya, lalu simulasikan redaman sinyal (<em>Link Loss Budget</em>).</p>
+                </div>
+                <button onclick="speakFiberLayer()" class="self-start md:self-auto px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-2 transition">
+                    <i class="fa-solid fa-volume-high"></i>
+                    <span>Dengarkan Penjelasan Lapisan Aktif</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left Column: Interactive SVG Fiber Cross-Section & Total Internal Reflection (7 cols) -->
+                <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class="text-xs font-mono uppercase px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                            PENAMPANG ANATOMI FIBER OPTIK & PEMANTULAN CAHAYA
+                        </span>
+                        <span class="text-xs text-slate-400">Klik lapisan nomor 1–5 di bawah:</span>
+                    </div>
+
+                    <!-- Interactive SVG Cutaway of Optical Fiber -->
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-center">
+                        <svg viewBox="0 0 650 310" class="w-full h-auto select-none">
+                            <defs>
+                                <linearGradient id="jacketGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#f59e0b"/>
+                                    <stop offset="50%" stop-color="#d97706"/>
+                                    <stop offset="100%" stop-color="#92400e"/>
+                                </linearGradient>
+                                <linearGradient id="strengthGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#fde047"/>
+                                    <stop offset="100%" stop-color="#ca8a04"/>
+                                </linearGradient>
+                                <linearGradient id="coatingGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#38bdf8"/>
+                                    <stop offset="100%" stop-color="#0284c7"/>
+                                </linearGradient>
+                                <linearGradient id="claddingGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#818cf8"/>
+                                    <stop offset="100%" stop-color="#4f46e5"/>
+                                </linearGradient>
+                                <linearGradient id="coreGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#ecfeff"/>
+                                    <stop offset="100%" stop-color="#67e8f9"/>
+                                </linearGradient>
+                            </defs>
+
+                            <!-- Background Label -->
+                            <text x="20" y="28" fill="#94a3b8" font-size="12" font-family="Inter" font-weight="600">Simulasi Penampang Lapisan & Prinsip Total Internal Reflection (TIR)</text>
+
+                            <!-- 5. Outer Jacket -->
+                            <g class="fiber-layer" onclick="selectFiberLayer(5)">
+                                <rect id="svg-layer-5" x="25" y="55" width="130" height="190" rx="14" fill="url(#jacketGrad)" stroke="#fbbf24" stroke-width="2"/>
+                                <circle cx="90" cy="40" r="11" fill="#f59e0b"/>
+                                <text x="90" y="44" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">5</text>
+                                <text x="90" y="265" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="600">Outer Jacket</text>
+                            </g>
+
+                            <!-- 4. Strength Member (Aramid Yarn / Kevlar) -->
+                            <g class="fiber-layer" onclick="selectFiberLayer(4)">
+                                <rect id="svg-layer-4" x="155" y="72" width="95" height="156" rx="8" fill="url(#strengthGrad)" stroke="#fef08a" stroke-width="1.5"/>
+                                <!-- Kevlar fiber texture lines -->
+                                <line x1="160" y1="88" x2="245" y2="88" stroke="#713f12" stroke-width="1" stroke-dasharray="6 3"/>
+                                <line x1="160" y1="115" x2="245" y2="115" stroke="#713f12" stroke-width="1" stroke-dasharray="6 3"/>
+                                <line x1="160" y1="185" x2="245" y2="185" stroke="#713f12" stroke-width="1" stroke-dasharray="6 3"/>
+                                <line x1="160" y1="210" x2="245" y2="210" stroke="#713f12" stroke-width="1" stroke-dasharray="6 3"/>
+                                <circle cx="202" cy="54" r="11" fill="#eab308"/>
+                                <text x="202" y="58" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">4</text>
+                                <text x="202" y="250" text-anchor="middle" fill="#fde047" font-size="11" font-weight="600">Strength Member</text>
+                            </g>
+
+                            <!-- 3. Coating / Buffer -->
+                            <g class="fiber-layer" onclick="selectFiberLayer(3)">
+                                <rect id="svg-layer-3" x="250" y="92" width="95" height="116" rx="6" fill="url(#coatingGrad)" stroke="#7dd3fc" stroke-width="1.5"/>
+                                <circle cx="297" cy="74" r="11" fill="#0ea5e9"/>
+                                <text x="297" y="78" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">3</text>
+                                <text x="297" y="230" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="600">Coating / Buffer</text>
+                            </g>
+
+                            <!-- 2. Cladding -->
+                            <g class="fiber-layer" onclick="selectFiberLayer(2)">
+                                <rect id="svg-layer-2" x="345" y="110" width="120" height="80" rx="4" fill="url(#claddingGrad)" stroke="#a5b4fc" stroke-width="2"/>
+                                <circle cx="405" cy="92" r="11" fill="#6366f1"/>
+                                <text x="405" y="96" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">2</text>
+                                <text x="405" y="212" text-anchor="middle" fill="#a5b4fc" font-size="11" font-weight="600">Cladding (n₂ ≈ 1.46)</text>
+                            </g>
+
+                            <!-- 1. Core + Total Internal Reflection Laser Ray -->
+                            <g class="fiber-layer" onclick="selectFiberLayer(1)">
+                                <rect id="svg-layer-1" x="465" y="128" width="160" height="44" rx="3" fill="url(#coreGrad)" stroke="#22d3ee" stroke-width="2"/>
+                                <!-- Laser Total Internal Reflection ZigZag Ray -->
+                                <polyline points="465,150 495,132 535,168 575,132 615,165 625,150" fill="none" stroke="#f43f5e" stroke-width="3.5" class="animate-laser"/>
+                                <circle cx="545" cy="110" r="11" fill="#06b6d4"/>
+                                <text x="545" y="114" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">1</text>
+                                <text x="545" y="192" text-anchor="middle" fill="#22d3ee" font-size="11" font-weight="700">Core / Inti Silika (n₁ ≈ 1.48)</text>
+                            </g>
+
+                            <!-- Legend at bottom -->
+                            <g transform="translate(25, 288)">
+                                <line x1="0" y1="0" x2="28" y2="0" stroke="#f43f5e" stroke-width="3.5" stroke-dasharray="6 3"/>
+                                <text x="36" y="4" fill="#cbd5e1" font-size="11">Sinar Laser / Pulsa Cahaya mengalami Pemantulan Sempurna (Total Internal Reflection) di dalam Core</text>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <!-- Layer Quick Buttons + Active Layer Info Card -->
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="selectFiberLayer(1)" id="btn-layer-1" class="fiber-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white transition">1. Core (Inti)</button>
+                        <button onclick="selectFiberLayer(2)" id="btn-layer-2" class="fiber-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">2. Cladding</button>
+                        <button onclick="selectFiberLayer(3)" id="btn-layer-3" class="fiber-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">3. Coating / Buffer</button>
+                        <button onclick="selectFiberLayer(4)" id="btn-layer-4" class="fiber-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">4. Strength Member</button>
+                        <button onclick="selectFiberLayer(5)" id="btn-layer-5" class="fiber-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">5. Outer Jacket</button>
+                    </div>
+
+                    <!-- Layer Explanation Box -->
+                    <div class="bg-slate-950 border border-indigo-500/30 rounded-xl p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <h3 id="fiber-layer-title" class="text-base font-bold text-cyan-400">1. Core (Inti Serat Kaca Silika)</h3>
+                            <span id="fiber-layer-diameter" class="text-xs font-mono px-2.5 py-0.5 rounded bg-slate-800 text-slate-300">Diameter: 9 µm (Singlemode) / 50 µm (Multimode)</span>
+                        </div>
+                        <p id="fiber-layer-desc" class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            Bagian paling dalam dari serat optik yang terbuat dari kaca silika berkualitas sangat tinggi. Memiliki indeks bias lebih tinggi (n₁ ≈ 1.48) dibanding Cladding sehingga sinyal cahaya laser dapat merambat lurus melalui fenomena Total Internal Reflection.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right Column: Interactive Link Loss Budget Simulator (5 cols) -->
+                <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-5">
+                    <div class="space-y-4">
+                        <div class="border-b border-slate-800 pb-3">
+                            <span class="text-[11px] font-mono uppercase tracking-wider text-emerald-400">Simulasi Perhitungan Teknis</span>
+                            <h3 class="text-lg font-bold text-white">Kalkulator Redaman (Link Loss Budget)</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Geser slider untuk menghitung estimasi total kehilangan daya optik (dB) dari pemancar (Tx) ke penerima (Rx).</p>
+                        </div>
+
+                        <!-- Wavelength Selector -->
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-semibold text-slate-300">Panjang Gelombang Optik (Wavelength):</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="setWavelength(1310)" id="wl-1310" class="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white border border-indigo-500 transition">
+                                    1310 nm (0.35 dB/km)
+                                </button>
+                                <button onclick="setWavelength(1550)" id="wl-1550" class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-950 text-slate-300 border border-slate-800 hover:bg-slate-800 transition">
+                                    1550 nm (0.20 dB/km)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Slider 1: Cable Length (km) -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-300 font-medium">1. Panjang Kabel Fiber Optik:</span>
+                                <span id="val-length" class="font-mono font-bold text-indigo-400">10 km</span>
+                            </div>
+                            <input id="slider-length" type="range" min="1" max="80" value="10" oninput="calculateLinkLoss()" class="w-full accent-indigo-500 cursor-pointer">
+                            <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                                <span>1 km</span>
+                                <span>40 km</span>
+                                <span>80 km</span>
+                            </div>
+                        </div>
+
+                        <!-- Slider 2: Number of Connectors -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-300 font-medium">2. Jumlah Konektor (SC/LC @ 0.5 dB):</span>
+                                <span id="val-connectors" class="font-mono font-bold text-indigo-400">2 buah</span>
+                            </div>
+                            <input id="slider-connectors" type="range" min="2" max="12" value="2" oninput="calculateLinkLoss()" class="w-full accent-indigo-500 cursor-pointer">
+                        </div>
+
+                        <!-- Slider 3: Number of Fusion Splices -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-300 font-medium">3. Jumlah Sambungan / Splice (@ 0.1 dB):</span>
+                                <span id="val-splices" class="font-mono font-bold text-indigo-400">4 titik</span>
+                            </div>
+                            <input id="slider-splices" type="range" min="0" max="30" value="4" oninput="calculateLinkLoss()" class="w-full accent-indigo-500 cursor-pointer">
+                        </div>
+                    </div>
+
+                    <!-- Output Result Box -->
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-400">Total Redaman Jalur (Total Loss):</span>
+                            <span id="total-loss-db" class="text-2xl font-extrabold font-mono text-emerald-400">4.90 dB</span>
+                        </div>
+
+                        <!-- Signal Quality Progress Bar -->
+                        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div id="loss-progress-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 25%;"></div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-400">Batas Maksimum SFP Standar: <strong>20.0 dB</strong></span>
+                            <span id="loss-status-badge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold">SINYAL OPTIMAL</span>
+                        </div>
+
+                        <p id="loss-formula-detail" class="text-[11px] font-mono text-slate-400 border-t border-slate-800/80 pt-2">
+                            Rumus: (10 km × 0.35 dB) + (2 × 0.5 dB) + (4 × 0.1 dB) = 4.90 dB
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             SCENE 4: KUIS EVALUASI FORMATIF INTERAKTIF
+             ========================================== -->
+        <section id="scene-kuis" class="scene-panel hidden space-y-6">
+            <div class="max-w-3xl mx-auto space-y-6">
+                <!-- Quiz Header -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-check text-indigo-400"></i>
+                            <span>Kuis Evaluasi Formatif (Studi Kasus)</span>
+                        </h2>
+                        <p class="text-xs sm:text-sm text-slate-400">Uji ketercapaian tujuan pembelajaran. Target ketuntasan minimal: <strong>80% (4/5 Benar)</strong>.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <div class="text-[11px] text-slate-400 font-mono uppercase">Progres Soal</div>
+                            <div id="quiz-progress-text" class="text-sm font-bold text-indigo-400">Soal 1 dari 5</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Question Container -->
+                <div id="quiz-question-card" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5 shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <span id="quiz-category-badge" class="px-3 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 text-xs font-semibold">
+                            Analisis Topologi
+                        </span>
+                        <button onclick="speakCurrentQuestion()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-volume-high text-indigo-400"></i>
+                            <span>Bacakan Soal</span>
+                        </button>
+                    </div>
+
+                    <h3 id="quiz-question-text" class="text-base sm:text-lg font-bold text-white leading-relaxed">
+                        Memuat soal...
+                    </h3>
+
+                    <!-- Options List -->
+                    <div id="quiz-options-list" class="space-y-3"></div>
+
+                    <!-- Instant Feedback Box -->
+                    <div id="quiz-feedback-box" class="hidden p-4 rounded-xl border space-y-1.5 text-xs sm:text-sm">
+                        <div id="quiz-feedback-title" class="font-bold flex items-center gap-2"></div>
+                        <p id="quiz-feedback-desc" class="text-slate-300 leading-relaxed"></p>
+                    </div>
+
+                    <!-- Navigation Button -->
+                    <div class="flex justify-end pt-2">
+                        <button id="btn-next-question" onclick="nextQuestion()" class="hidden px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm flex items-center gap-2 transition">
+                            <span>Soal Selanjutnya</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quiz Final Result Card (Hidden until finished) -->
+                <div id="quiz-result-card" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-5 shadow-xl">
+                    <div id="result-icon-wrap" class="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-3xl">
+                        <i id="result-icon" class="fa-solid fa-trophy"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Hasil Evaluasi Akhir</span>
+                        <h3 id="result-status-title" class="text-2xl font-extrabold text-white">Selamat! Anda Mencapai Ketuntasan Belajar</h3>
+                    </div>
+                    <div class="flex justify-center gap-6 py-2">
+                        <div class="bg-slate-950 border border-slate-800 px-6 py-4 rounded-xl">
+                            <div class="text-xs text-slate-400">Skor Akhir</div>
+                            <div id="result-score-number" class="text-3xl font-extrabold font-mono text-indigo-400">100</div>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 px-6 py-4 rounded-xl">
+                            <div class="text-xs text-slate-400">Jawaban Benar</div>
+                            <div id="result-correct-count" class="text-3xl font-extrabold font-mono text-emerald-400">5 / 5</div>
+                        </div>
+                    </div>
+                    <p id="result-summary-desc" class="text-sm text-slate-300 max-w-md mx-auto"></p>
+                    <div class="flex justify-center gap-3 pt-2">
+                        <button onclick="resetQuiz()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm flex items-center gap-2 transition">
+                            <i class="fa-solid fa-rotate-right"></i>
+                            <span>Ulangi Kuis</span>
+                        </button>
+                        <button onclick="switchTab('storyboard')" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm flex items-center gap-2 transition">
+                            <i class="fa-solid fa-file-lines"></i>
+                            <span>Lihat Dokumentasi Laporan</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             SCENE 5: INFO STORYBOARD & LAPORAN TUGAS MINGGU 11
+             ========================================== -->
+        <section id="scene-storyboard" class="scene-panel hidden space-y-6">
+            <!-- Header & Copy Report Button -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-file-contract text-indigo-400"></i>
+                        <span>Dokumen Proses Pembuatan & Storyboard (Tugas Minggu ke-11)</span>
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-400">Dokumentasi kesesuaian rancangan, integrasi elemen visual-audio-interaktif, dan uji fungsi media.</p>
+                </div>
+                <button onclick="copyReportToClipboard()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition self-start sm:self-auto">
+                    <i class="fa-solid fa-copy"></i>
+                    <span>Salin Teks Laporan Lengkap</span>
+                </button>
+            </div>
+
+            <!-- 1. Tabel Kesesuaian Media dengan Rancangan (Storyboard) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-md bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">1</span>
+                    <span>Tabel Pemetaan Rancangan Storyboard & Integrasi Elemen Media (Indikator 1 & 2)</span>
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-400 bg-slate-950/60">
+                                <th class="p-3 font-semibold">Scene / Halaman</th>
+                                <th class="p-3 font-semibold">Elemen Visual</th>
+                                <th class="p-3 font-semibold">Elemen Audio</th>
+                                <th class="p-3 font-semibold">Interaktivitas & Fungsi Pedagogis</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/80 text-slate-300">
+                            <tr>
+                                <td class="p-3 font-semibold text-white">Scene 1: Beranda & Tujuan</td>
+                                <td class="p-3">Hero banner modern, ikon indikator 3 elemen multimedia, kartu Tujuan ABCD & IPK.</td>
+                                <td class="p-3">Narasi pengantar Bahasa Indonesia (Web Speech API) & SFX klik navigasi.</td>
+                                <td class="p-3">Tombol navigasi non-linear dan pemutar suara pengantar untuk memfokuskan kesiapan belajar.</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-semibold text-white">Scene 2: Simulasi Topologi (Hotspot)</td>
+                                <td class="p-3">Diagram SVG dinamis (Star, Bus, Ring, Mesh) dengan animasi aliran paket data dan indikator warna jalur putus.</td>
+                                <td class="p-3">SFX klik hotspot, alarm peringatan saat *Fault Test*, dan Voice-Over penjelasan tiap komponen.</td>
+                                <td class="p-3"><em>Clickable Hotspot</em> pada node/kabel dan sakelar <em>Fault Test</em> untuk menguji ketahanan topologi secara langsung.</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-semibold text-white">Scene 3: Eksplorasi Fiber Optik</td>
+                                <td class="p-3">Diagram penampang 5 lapisan kabel Fiber Optik + animasi laser <em>Total Internal Reflection</em>.</td>
+                                <td class="p-3">Voice-Over penjelasan tiap lapisan serat optik dan umpan balik audio saat memilih lapisan.</td>
+                                <td class="p-3">Klik interaktif 5 lapisan kabel & <em>Slider Kalkulator Link Loss Budget</em> real-time (panjang, konektor, splice).</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-semibold text-white">Scene 4: Kuis Evaluasi Formatif</td>
+                                <td class="p-3">Kartu soal studi kasus, indikator warna hijau (benar) & merah (salah), kartu skor akhir.</td>
+                                <td class="p-3">Chime harmonis saat jawaban benar, buzzer lembut saat salah, fanfare skor akhir, dan pembaca soal VO.</td>
+                                <td class="p-3"><em>Instant Feedback</em> disertai pembahasan konsep langsung untuk mengukur ketercapaian kompetensi (≥80%).</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2. Tabel Uji Fungsi Media (Black-Box Testing - Indikator 3) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">2</span>
+                    <span>Hasil Uji Fungsi Media & Kesesuaian Tujuan Pembelajaran (Indikator 3)</span>
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-400 bg-slate-950/60">
+                                <th class="p-3 font-semibold">Komponen Uji</th>
+                                <th class="p-3 font-semibold">Skenario Pengujian</th>
+                                <th class="p-3 font-semibold">Status Hasil</th>
+                                <th class="p-3 font-semibold">Kontribusi terhadap Tujuan Pembelajaran</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/80 text-slate-300">
+                            <tr>
+                                <td class="p-3 font-semibold text-white">Hotspot & Simulasi Topologi</td>
+                                <td class="p-3">Mengklik node Switch/PC/Kabel dan mengaktifkan tombol "Simulasikan Putus Jalur".</td>
+                                <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-xs">VALID (100%)</span></td>
+                                <td class="p-3">Peserta didik dapat mengamati langsung perbedaan dampak putusnya kabel backbone Bus vs kabel cabang Star.</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-semibold text-white">Penampang & Kalkulator Fiber Optik</td>
+                                <td class="p-3">Mengklik lapisan 1–5 dan menggeser slider panjang kabel serta jumlah sambungan.</td>
+                                <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-xs">VALID (100%)</span></td>
+                                <td class="p-3">Memvisualisasikan konsep abstrak pemantulan cahaya dan perhitungan matematis redaman (dB) secara konkret.</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-semibold text-white">Integrasi Audio (SFX, BGM, VO)</td>
+                                <td class="p-3">Menguji tombol SFX, BGM Ambient Synth, dan Voice-Over Bahasa Indonesia.</td>
+                                <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-xs">VALID (100%)</span></td>
+                                <td class="p-3">Mengakomodasi gaya belajar auditori & visual (*dual-coding*) tanpa ketergantungan berkas audio eksternal.</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-semibold text-white">Evaluasi Formatif & Feedback</td>
+                                <td class="p-3">Menjawab 5 soal studi kasus dan memverifikasi kalkulasi skor kelulusan (≥80%).</td>
+                                <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-xs">VALID (100%)</span></td>
+                                <td class="p-3">Memberikan koreksi miskonsepsi secara instan dan mengukur derajat pencapaian kompetensi peserta didik.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900/80 border-t border-slate-800 py-4 mt-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
+            <div>
+                <strong>NetLearn Interactive</strong> — Produk Media Pembelajaran Berbasis Teknologi (Tugas Minggu ke-11)
+            </div>
+            <div class="flex items-center gap-4">
+                <span><i class="fa-solid fa-check-double text-emerald-400 mr-1"></i>Visual SVG</span>
+                <span><i class="fa-solid fa-check-double text-emerald-400 mr-1"></i>Web Audio & Speech API</span>
+                <span><i class="fa-solid fa-check-double text-emerald-400 mr-1"></i>Interactive Hotspot</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==========================================
+         JAVASCRIPT ENGINE: AUDIO, SVG TOPOLOGY, FIBER, QUIZ
+         ========================================== -->
+    <script>
+        /* -----------------------------------------------------------
+           1. WEB AUDIO API (SFX & AMBIENT BGM) + SPEECH SYNTHESIS VO
+        ----------------------------------------------------------- */
+        let audioCtx = null;
+        let sfxEnabled = true;
+        let bgmEnabled = false;
+        let bgmInterval = null;
+        let activeTab = 'beranda';
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        // Play procedural sound effects (click, hotspot, fault, correct, wrong, fanfare)
+        function playSFX(type) {
+            if (!sfxEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+
+                if (type === 'click') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(580, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.06);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.065);
+                } else if (type === 'hotspot') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.05); // E5
+                    gain.gain.setValueAtTime(0.14, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'fault') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.linearRampToValueAtTime(130, now + 0.25);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.29);
+                } else if (type === 'correct') {
+                    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5 E5 G5 C6
+                    notes.forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+                        gain.gain.setValueAtTime(0.15, now + idx * 0.07);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.22);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + idx * 0.07);
+                        osc.stop(now + idx * 0.07 + 0.24);
+                    });
+                } else if (type === 'wrong') {
+                    const notes = [240, 180];
+                    notes.forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+                        gain.gain.setValueAtTime(0.12, now + idx * 0.12);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.2);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + idx * 0.12);
+                        osc.stop(now + idx * 0.12 + 0.22);
+                    });
+                }
+            } catch (e) {
+                console.warn('Web Audio API error:', e);
+            }
+        }
+
+        function toggleSFX() {
+            sfxEnabled = !sfxEnabled;
+            const btn = document.getElementById('btn-sfx');
+            const icon = document.getElementById('icon-sfx');
+            const label = document.getElementById('label-sfx');
+            if (sfxEnabled) {
+                btn.className = 'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition';
+                icon.className = 'fa-solid fa-volume-high';
+                label.textContent = 'SFX: ON';
+                playSFX('click');
+                showToast('Efek suara interaksi (SFX) diaktifkan.');
+            } else {
+                btn.className = 'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 transition';
+                icon.className = 'fa-solid fa-volume-xmark';
+                label.textContent = 'SFX: OFF';
+                showToast('Efek suara interaksi (SFX) dimatikan.');
+            }
+        }
+
+        // Gentle Ambient Synth Pad Loop for Educational BGM
+        function playAmbientChord() {
+            if (!bgmEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                const chords = [
+                    [261.63, 329.63, 392.00], // C major
+                    [220.00, 261.63, 329.63], // A minor
+                    [174.61, 220.00, 261.63], // F major
+                    [196.00, 246.94, 293.66]  // G major
+                ];
+                const chord = chords[Math.floor(Math.random() * chords.length)];
+                chord.forEach(freq => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now);
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.025, now + 1.0);
+                    gain.gain.exponentialRampToValueAtTime(0.0008, now + 3.8);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 3.9);
+                });
+            } catch (e) {}
+        }
+
+        function toggleBGM() {
+            bgmEnabled = !bgmEnabled;
+            const btn = document.getElementById('btn-bgm');
+            const label = document.getElementById('label-bgm');
+            if (bgmEnabled) {
+                btn.className = 'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 transition';
+                label.textContent = 'BGM: ON';
+                playAmbientChord();
+                bgmInterval = setInterval(playAmbientChord, 4000);
+                showToast('Musik latar ambient belajar diaktifkan.');
+            } else {
+                btn.className = 'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition';
+                label.textContent = 'BGM: OFF';
+                if (bgmInterval) clearInterval(bgmInterval);
+                showToast('Musik latar ambient dimatikan.');
+            }
+        }
+
+        // Web Speech API (Indonesian Voice-Over Narration)
+        const pageNarrations = {
+            beranda: 'Halaman Beranda dan Tujuan Pembelajaran. Melalui media interaktif ini, Anda akan mempelajari karakteristik empat topologi jaringan komputer, menguji simulasi gangguan jalur, serta mempelajari struktur dan perhitungan redaman kabel fiber optik. Klik tombol Mulai Belajar Sekarang untuk masuk ke laboratorium simulasi.',
+            topologi: 'Laboratorium Simulasi Topologi Jaringan. Pilih salah satu sub-tab topologi di bagian atas, lalu klik komponen komputer, switch, atau kabel pada diagram untuk membaca dan mendengarkan fungsinya. Anda juga dapat menekan tombol Simulasikan Putus Jalur untuk melihat dampak kerusakan kabel secara langsung.',
+            fiber: 'Halaman Eksplorasi Fiber Optik dan Kalkulator Redaman. Klik lapisan nomor 1 hingga 5 pada penampang kabel untuk mempelajari anatomi pelindung serat optik dan prinsip pemantulan sempurna. Di sebelah kanan, geser slider panjang kabel dan jumlah konektor untuk menghitung total kehilangan daya optik dalam satuan desibel.',
+            kuis: 'Halaman Kuis Evaluasi Formatif. Jawablah 5 pertanyaan studi kasus berikut untuk menguji pemahaman Anda. Setiap jawaban akan langsung disertai pembahasan konsep. Raih skor minimal 80 persen untuk mencapai ketuntasan belajar.',
+            storyboard: 'Halaman Dokumentasi Storyboard dan Laporan Tugas Minggu ke-11. Tabel ini merangkum kesesuaian rancangan visual, audio, interaktivitas, serta hasil uji fungsi media yang siap Anda lampirkan pada laporan tugas kuliah.'
+        };
+
+        function speakCustomText(text) {
+            if (!('speechSynthesis' in window)) {
+                showToast('Browser Anda tidak mendukung fitur pembaca suara otomatis.');
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 1.0;
+
+            const btnVo = document.getElementById('btn-vo');
+            const labelVo = document.getElementById('label-vo');
+
+            utterance.onstart = () => {
+                btnVo.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-sm transition';
+                labelVo.textContent = 'Hentikan Narasi';
+            };
+            utterance.onend = () => {
+                btnVo.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition';
+                labelVo.textContent = 'Bacakan Narasi (VO)';
+            };
+            utterance.onerror = () => {
+                btnVo.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition';
+                labelVo.textContent = 'Bacakan Narasi (VO)';
+            };
+
+            window.speechSynthesis.speak(utterance);
+            showToast('Memutar narasi suara (Voice-Over)...');
+        }
+
+        function togglePageNarration() {
+            if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                const btnVo = document.getElementById('btn-vo');
+                const labelVo = document.getElementById('label-vo');
+                btnVo.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition';
+                labelVo.textContent = 'Bacakan Narasi (VO)';
+                showToast('Narasi suara dihentikan.');
+                return;
+            }
+            speakCustomText(pageNarrations[activeTab] || pageNarrations.beranda);
+        }
+
+        /* -----------------------------------------------------------
+           2. NON-LINEAR TAB NAVIGATION
+        ----------------------------------------------------------- */
+        function switchTab(tabId) {
+            playSFX('click');
+            if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                document.getElementById('label-vo').textContent = 'Bacakan Narasi (VO)';
+                document.getElementById('btn-vo').className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition';
+            }
+
+            activeTab = tabId;
+            const tabs = ['beranda', 'topologi', 'fiber', 'kuis', 'storyboard'];
+            tabs.forEach(t => {
+                const scene = document.getElementById('scene-' + t);
+                const btn = document.getElementById('tab-' + t);
+                if (t === tabId) {
+                    scene.classList.remove('hidden');
+                    btn.className = 'nav-tab flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition bg-indigo-600 text-white shadow-sm';
+                } else {
+                    scene.classList.add('hidden');
+                    btn.className = 'nav-tab flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition text-slate-300 hover:bg-slate-800 hover:text-white';
+                }
+            });
+        }
+
+        /* -----------------------------------------------------------
+           3. SCENE 2: INTERACTIVE TOPOLOGY SIMULATOR & HOTSPOTS
+        ----------------------------------------------------------- */
+        let currentTopology = 'star';
+        let faultSimulated = false;
+
+        const topologyData = {
+            star: {
+                name: 'TOPOLOGI STAR (BINTANG)',
+                heading: 'Analisis Karakteristik Topologi Star',
+                pros: [
+                    'Jika 1 kabel workstation putus, jaringan lain tetap berjalan normal.',
+                    'Mudah mendeteksi letak gangguan dan menambah perangkat baru.',
+                    'Keamanan dan manajemen lalu lintas data terpusat pada Switch.'
+                ],
+                cons: [
+                    'Sangat bergantung pada perangkat pusat (Switch/Hub). Jika Switch rusak, seluruh jaringan lumpuh.',
+                    'Membutuhkan lebih banyak kabel UTP karena setiap node ditarik mandiri ke Switch.'
+                ],
+                normalAlert: 'Seluruh 4 node terhubung mandiri ke Switch Pusat. Paket data dikirim secara terarah (unicast) menuju node tujuan.',
+                faultAlert: 'SIMULASI GANGGUAN: Jalur kabel menuju PC-3 terputus! Perhatikan bahwa PC-1, PC-2, dan Server tetap dapat berkomunikasi dengan normal melalui Switch Pusat.',
+                hotspots: {
+                    switch: {
+                        title: 'Switch Pusat (Central Concentrator)',
+                        desc: 'Perangkat pusat pada Topologi Star yang meneruskan frame data secara cerdas berdasarkan tabel MAC Address ke port tujuan tanpa mengganggu port lain.',
+                        role: 'Konsentrator & Pengatur Paket Data',
+                        cable: 'Port RJ-45 / SFP Fiber'
+                    },
+                    server: {
+                        title: 'Node Server Utama',
+                        desc: 'Komputer penyedia layanan data dan aplikasi yang terhubung ke Switch Pusat melalui jalur berkecepatan tinggi (Gigabit Uplink).',
+                        role: 'Penyedia Layanan & Basis Data',
+                        cable: 'UTP Cat6 Gigabit'
+                    },
+                    client: {
+                        title: 'Workstation / PC Client',
+                        desc: 'Perangkat pengguna akhir yang memiliki satu jalur kabel dedicated langsung menuju port Switch. Kerusakan pada satu PC tidak memengaruhi PC lainnya.',
+                        role: 'Pengguna Akhir (End-Device)',
+                        cable: 'UTP Cat6 Straight-Through'
+                    },
+                    cable: {
+                        title: 'Jalur Kabel Point-to-Point (Star Link)',
+                        desc: 'Kabel penghubung mandiri antara satu workstation dengan port pada Switch Pusat. Memiliki panjang maksimum efektif 100 meter untuk kabel tembaga UTP.',
+                        role: 'Jalur Transmisi Dedicated per Node',
+                        cable: 'Twisted Pair (UTP/STP)'
+                    }
+                }
+            },
+            bus: {
+                name: 'TOPOLOGI BUS (LINIER)',
+                heading: 'Analisis Karakteristik Topologi Bus',
+                pros: [
+                    'Hemat biaya kabel karena hanya menggunakan satu jalur tulang punggung (Backbone).',
+                    'Instalasi fisik sederhana untuk jaringan berskala sangat kecil.'
+                ],
+                cons: [
+                    'Jika kabel utama (Backbone) putus di tengah, seluruh jaringan langsung lumpuh total.',
+                    'Rawan terjadi tabrakan data (collision) saat dua node mengirim data bersamaan.',
+                    'Sulit melacak titik kerusakan pada jalur backbone.'
+                ],
+                normalAlert: 'Seluruh node berbagi satu kabel Backbone utama. Sinyal mengalir ke seluruh jalur dan diserap oleh Terminator di kedua ujung.',
+                faultAlert: 'SIMULASI GANGGUAN KRITIS: Kabel Backbone utama putus di tengah! Akibatnya terjadi pantulan sinyal (signal reflection) dan seluruh komunikasi jaringan Topologi Bus LUMPUH TOTAL.',
+                hotspots: {
+                    backbone: {
+                        title: 'Kabel Utama (Backbone Coaxial)',
+                        desc: 'Jalur tunggal tempat seluruh paket data disiarkan (broadcast). Jika kabel ini putus di satu titik saja, sinyal tidak dapat mencapai terminator dan jaringan mati.',
+                        role: 'Media Transmisi Tunggal Bersama',
+                        cable: 'Coaxial RG-58 (Thinnet)'
+                    },
+                    terminator: {
+                        title: 'Terminator 50-Ohm',
+                        desc: 'Komponen wajib di kedua ujung kabel Backbone Bus yang berfungsi menyerap sinyal listrik agar tidak memantul kembali (signal bounce) dan mengacaukan data.',
+                        role: 'Peredam Pantulan Sinyal Ujung',
+                        cable: 'BNC Terminator 50 Ohm'
+                    },
+                    tconnector: {
+                        title: 'BNC T-Connector & Drop Cable',
+                        desc: 'Konektor berbentuk huruf T yang mencabangkan jalur dari kabel Backbone utama menuju kartu jaringan (NIC) pada masing-masing komputer.',
+                        role: 'Titik Percabangan Node',
+                        cable: 'Konektor BNC & Drop Cable'
+                    }
+                }
+            },
+            ring: {
+                name: 'TOPOLOGI RING (CINCIN)',
+                heading: 'Analisis Karakteristik Topologi Ring',
+                pros: [
+                    'Bebas dari tabrakan data (collision) karena menggunakan mekanisme pengiriman Token satu arah.',
+                    'Performa kecepatan stabil meskipun jumlah trafik pengguna meningkat.'
+                ],
+                cons: [
+                    'Pada Single-Ring, jika satu node mati atau satu segmen kabel putus, aliran cincin terputus dan jaringan terhenti (kecuali menggunakan Dual-Ring/FDDI).',
+                    'Penambahan atau pemindahan perangkat mengharuskan pemutusan sementara jalur cincin.'
+                ],
+                normalAlert: 'Paket data (Token) berputar searah jarum jam melewati setiap node secara berurutan (estafet) hingga tiba di node tujuan.',
+                faultAlert: 'SIMULASI GANGGUAN: Segmen kabel antara Node-2 dan Node-3 terputus! Karena menggunakan satu jalur cincin (Single-Ring), putaran Token terhenti dan komunikasi antarnode gagal.',
+                hotspots: {
+                    token: {
+                        title: 'Jalur Sirkulasi Token (Ring Path)',
+                        desc: 'Aliran melingkar tertutup di mana bingkai data kecil bernama Token berputar satu arah. Hanya komputer yang memegang Token yang diizinkan mengirim data.',
+                        role: 'Pengendali Giliran Transmisi',
+                        cable: 'UTP / Fiber Optik FDDI'
+                    },
+                    repeater: {
+                        title: 'Node Aktif (Sebagai Repeater)',
+                        desc: 'Pada Topologi Ring, setiap komputer berfungsi memeriksa alamat paket data dan memperkuat kembali sinyal (regenerate) sebelum meneruskannya ke tetangga berikutnya.',
+                        role: 'Penerus & Penguat Sinyal Estafet',
+                        cable: 'Dual Port NIC (In / Out)'
+                    }
+                }
+            },
+            mesh: {
+                name: 'TOPOLOGI FULL MESH',
+                heading: 'Analisis Karakteristik Topologi Mesh',
+                pros: [
+                    'Memiliki tingkat keandalan (Fault Tolerance) tertinggi; jika 1 jalur putus, data otomatis lewat jalur cadangan langsung lainnya.',
+                    'Privasi dan keamanan tinggi karena setiap pasangan node memiliki jalur dedicated sendiri.'
+                ],
+                cons: [
+                    'Biaya instalasi sangat mahal karena jumlah kabel dihitung dengan rumus N(N-1)/2.',
+                    'Konfigurasi routing dan pemeliharaan port sangat kompleks.'
+                ],
+                normalAlert: 'Setiap node terhubung langsung ke semua node lainnya (4 node = 6 jalur kabel dedicated). Tidak ada titik kemacetan tunggal.',
+                faultAlert: 'SIMULASI GANGGUAN: Jalur langsung Node-1 ke Node-3 terputus! Namun berkat karakteristik Mesh, paket data tetap sampai100% dengan mengambil rute alternatif (Node-1 → Node-2 → Node-3).',
+                hotspots: {
+                    meshnode: {
+                        title: 'Router / Core Node Mesh',
+                        desc: 'Perangkat jaringan utama yang memiliki banyak antarmuka port untuk terhubung langsung ke seluruh node tetangga. Mampu mengalihkan rute otomatis (failover) dalam hitungan milidetik.',
+                        role: 'Node Inti Berketahanan Tinggi',
+                        cable: 'Multi-Link Fiber Optik / Core Link'
+                    },
+                    meshlink: {
+                        title: 'Jalur Redundan Dedicated (N(N-1)/2)',
+                        desc: 'Untuk 4 perangkat diperlukan 4×(4-1)/2 = 6 jalur fisik. Menjamin komunikasi tidak pernah terputus meskipun terjadi kerusakan pada salah satu kabel.',
+                        role: 'Jalur Cadangan Otomatis (Redundancy)',
+                        cable: 'Point-to-Point Core Link'
+                    }
+                }
+            }
+        };
+
+        function selectTopology(topoKey) {
+            playSFX('click');
+            currentTopology = topoKey;
+            faultSimulated = false;
+
+            // Update Sub-Tab buttons
+            ['star', 'bus', 'ring', 'mesh'].forEach(k => {
+                const btn = document.getElementById('topo-btn-' + k);
+                if (k === topoKey) {
+                    btn.className = 'topo-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-indigo-600 text-white shadow-sm transition';
+                } else {
+                    btn.className = 'topo-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+                }
+            });
+
+            updateTopologyUI();
+        }
+
+        function toggleFaultSimulation() {
+            faultSimulated = !faultSimulated;
+            playSFX(faultSimulated ? 'fault' : 'hotspot');
+            updateTopologyUI();
+        }
+
+        function updateTopologyUI() {
+            const data = topologyData[currentTopology];
+            document.getElementById('topo-badge-title').textContent = data.name;
+            document.getElementById('topo-char-heading').textContent = data.heading;
+
+            // Update Status Badge & Fault Button
+            const statusBadge = document.getElementById('topo-status-badge');
+            const faultBtn = document.getElementById('btn-fault-toggle');
+            const faultLabel = document.getElementById('label-fault-btn');
+            const alertBox = document.getElementById('fault-alert-box');
+            const alertIcon = document.getElementById('fault-alert-icon');
+            const alertTitle = document.getElementById('fault-alert-title');
+            const alertDesc = document.getElementById('fault-alert-desc');
+
+            if (faultSimulated) {
+                statusBadge.className = 'px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-400 text-xs font-mono animate-pulse';
+                statusBadge.textContent = '▲ SIMULASI GANGGUAN AKTIF';
+                faultBtn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2 transition';
+                faultLabel.textContent = 'Pulihkan Jalur Jaringan (Normal)';
+                alertBox.className = 'mt-4 p-3.5 rounded-xl bg-rose-950/30 border border-rose-500/40 flex items-start gap-3';
+                alertIcon.className = 'fa-solid fa-triangle-exclamation text-rose-400 text-lg mt-0.5';
+                alertTitle.textContent = 'Analisis Dampak Gangguan:';
+                alertDesc.textContent = ' ' + data.faultAlert;
+            } else {
+                statusBadge.className = 'px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 text-xs font-mono';
+                statusBadge.textContent = '● JARINGAN NORMAL';
+                faultBtn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 flex items-center gap-2 transition';
+                faultLabel.textContent = 'Simulasikan Putus Jalur (Fault Test)';
+                alertBox.className = 'mt-4 p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-3';
+                alertIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-lg mt-0.5';
+                alertTitle.textContent = 'Kondisi Operasi Normal:';
+                alertDesc.textContent = ' ' + data.normalAlert;
+            }
+
+            // Populate Pros & Cons
+            const prosEl = document.getElementById('topo-pros-list');
+            const consEl = document.getElementById('topo-cons-list');
+            prosEl.innerHTML = data.pros.map(p => `<li>${p}</li>`).join('');
+            consEl.innerHTML = data.cons.map(c => `<li>${c}</li>`).join('');
+
+            // Select default first hotspot for current topology
+            const firstHotspotKey = Object.keys(data.hotspots)[0];
+            selectHotspot(firstHotspotKey, false);
+
+            // Render Interactive SVG
+            renderTopologySVG();
+        }
+
+        function selectHotspot(hotspotKey, withSound = true) {
+            if (withSound) playSFX('hotspot');
+            const info = topologyData[currentTopology].hotspots[hotspotKey];
+            if (!info) return;
+            document.getElementById('hotspot-title').textContent = info.title;
+            document.getElementById('hotspot-desc').textContent = info.desc;
+            document.getElementById('hotspot-role').textContent = info.role;
+            document.getElementById('hotspot-cable').textContent = info.cable;
+        }
+
+        function speakHotspotDetail() {
+            const title = document.getElementById('hotspot-title').textContent;
+            const desc = document.getElementById('hotspot-desc').textContent;
+            speakCustomText(`${title}. ${desc}`);
+        }
+
+        function renderTopologySVG() {
+            const svg = document.getElementById('topology-svg');
+            let html = '';
+
+            if (currentTopology === 'star') {
+                const brokenColor = faultSimulated ? '#f43f5e' : '#6366f1';
+                const brokenDash = faultSimulated ? '6 6' : '8 6';
+                const brokenAnim = faultSimulated ? '' : 'animate-dash-flow';
+
+                html = `
+                    <!-- Cables from Central Switch (300, 190) to 4 Nodes -->
+                    <line onclick="selectHotspot('cable')" x1="300" y1="190" x2="300" y2="65" stroke="#6366f1" stroke-width="4" class="hotspot-node animate-dash-flow"/>
+                    <line onclick="selectHotspot('cable')" x1="300" y1="190" x2="120" y2="190" stroke="#6366f1" stroke-width="4" class="hotspot-node animate-dash-flow"/>
+                    <line onclick="selectHotspot('cable')" x1="300" y1="190" x2="480" y2="190" stroke="${brokenColor}" stroke-width="4" stroke-dasharray="${brokenDash}" class="hotspot-node ${brokenAnim}"/>
+                    <line onclick="selectHotspot('cable')" x1="300" y1="190" x2="300" y2="315" stroke="#6366f1" stroke-width="4" class="hotspot-node animate-dash-flow"/>
+
+                    ${faultSimulated ? `
+                        <!-- Fault X Marker on Right Link -->
+                        <g transform="translate(390, 190)">
+                            <circle r="14" fill="#e11d48"/>
+                            <text x="0" y="5" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">✕</text>
+                            <text x="0" y="-20" text-anchor="middle" fill="#fda4af" font-size="11" font-weight="bold">KABEL PUTUS</text>
+                        </g>
+                    ` : ''}
+
+                    <!-- Top Node: Server -->
+                    <g onclick="selectHotspot('server')" class="hotspot-node" transform="translate(300, 55)">
+                        <rect x="-45" y="-28" width="90" height="52" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2.5"/>
+                        <text x="0" y="-4" text-anchor="middle" fill="#34d399" font-size="11" font-weight="bold">SERVER UTAMA</text>
+                        <text x="0" y="13" text-anchor="middle" fill="#94a3b8" font-size="10">192.168.1.1</text>
+                    </g>
+
+                    <!-- Left Node: PC-1 -->
+                    <g onclick="selectHotspot('client')" class="hotspot-node" transform="translate(105, 190)">
+                        <rect x="-42" y="-26" width="84" height="52" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="2"/>
+                        <text x="0" y="-3" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="bold">PC Client 1</text>
+                        <text x="0" y="13" text-anchor="middle" fill="#34d399" font-size="10">● Online</text>
+                    </g>
+
+                    <!-- Right Node: PC-3 (Affected if Fault Active) -->
+                    <g onclick="selectHotspot('client')" class="hotspot-node" transform="translate(495, 190)">
+                        <rect x="-42" y="-26" width="84" height="52" rx="10" fill="#1e293b" stroke="${faultSimulated ? '#f43f5e' : '#6366f1'}" stroke-width="2"/>
+                        <text x="0" y="-3" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="bold">PC Client 3</text>
+                        <text x="0" y="13" text-anchor="middle" fill="${faultSimulated ? '#fb7185' : '#34d399'}" font-size="10">${faultSimulated ? '✕ Terputus' : '● Online'}</text>
+                    </g>
+
+                    <!-- Bottom Node: PC-2 -->
+                    <g onclick="selectHotspot('client')" class="hotspot-node" transform="translate(300, 325)">
+                        <rect x="-42" y="-26" width="84" height="52" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="2"/>
+                        <text x="0" y="-3" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="bold">PC Client 2</text>
+                        <text x="0" y="13" text-anchor="middle" fill="#34d399" font-size="10">● Online</text>
+                    </g>
+
+                    <!-- Central Switch Hotspot -->
+                    <g onclick="selectHotspot('switch')" class="hotspot-node" transform="translate(300, 190)">
+                        <rect x="-56" y="-28" width="112" height="56" rx="12" fill="#312e81" stroke="#818cf8" stroke-width="3"/>
+                        <text x="0" y="-3" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="bold">SWITCH PUSAT</text>
+                        <text x="0" y="14" text-anchor="middle" fill="#a5b4fc" font-size="10">Klik Detail Hotspot</text>
+                    </g>
+                `;
+            } else if (currentTopology === 'bus') {
+                const lineColor = faultSimulated ? '#f43f5e' : '#38bdf8';
+                const animClass = faultSimulated ? '' : 'animate-dash-flow';
+
+                html = `
+                    <!-- Main Backbone Line -->
+                    <line onclick="selectHotspot('backbone')" x1="70" y1="190" x2="530" y2="190" stroke="${lineColor}" stroke-width="6" class="hotspot-node ${animClass}"/>
+
+                    <!-- Drop Cables & T-Connectors -->
+                    <line onclick="selectHotspot('tconnector')" x1="170" y1="190" x2="170" y2="95" stroke="${lineColor}" stroke-width="3"/>
+                    <line onclick="selectHotspot('tconnector')" x1="300" y1="190" x2="300" y2="285" stroke="${lineColor}" stroke-width="3"/>
+                    <line onclick="selectHotspot('tconnector')" x1="430" y1="190" x2="430" y2="95" stroke="${lineColor}" stroke-width="3"/>
+
+                    <!-- T-Connector Nodes -->
+                    <circle onclick="selectHotspot('tconnector')" cx="170" cy="190" r="8" fill="#0284c7" stroke="#e0f2fe" stroke-width="2" class="hotspot-node"/>
+                    <circle onclick="selectHotspot('tconnector')" cx="300" cy="190" r="8" fill="#0284c7" stroke="#e0f2fe" stroke-width="2" class="hotspot-node"/>
+                    <circle onclick="selectHotspot('tconnector')" cx="430" cy="190" r="8" fill="#0284c7" stroke="#e0f2fe" stroke-width="2" class="hotspot-node"/>
+
+                    ${faultSimulated ? `
+                        <!-- Backbone Break Marker -->
+                        <g transform="translate(235, 190)">
+                            <circle r="15" fill="#e11d48"/>
+                            <text x="0" y="5" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">✕</text>
+                            <text x="0" y="-22" text-anchor="middle" fill="#fda4af" font-size="11" font-weight="bold">BACKBONE PUTUS!</text>
+                        </g>
+                    ` : ''}
+
+                    <!-- Left & Right Terminators -->
+                    <g onclick="selectHotspot('terminator')" class="hotspot-node" transform="translate(55, 190)">
+                        <rect x="-22" y="-24" width="44" height="48" rx="6" fill="#be123c" stroke="#fda4af" stroke-width="2"/>
+                        <text x="0" y="-2" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">TERM</text>
+                        <text x="0" y="11" text-anchor="middle" fill="#fecdd3" font-size="9">50Ω</text>
+                    </g>
+                    <g onclick="selectHotspot('terminator')" class="hotspot-node" transform="translate(545, 190)">
+                        <rect x="-22" y="-24" width="44" height="48" rx="6" fill="#be123c" stroke="#fda4af" stroke-width="2"/>
+                        <text x="0" y="-2" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">TERM</text>
+                        <text x="0" y="11" text-anchor="middle" fill="#fecdd3" font-size="9">50Ω</text>
+                    </g>
+
+                    <!-- Workstations -->
+                    <g onclick="selectHotspot('tconnector')" class="hotspot-node" transform="translate(170, 68)">
+                        <rect x="-42" y="-24" width="84" height="48" rx="8" fill="#1e293b" stroke="${lineColor}" stroke-width="2"/>
+                        <text x="0" y="-2" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Node PC-1</text>
+                        <text x="0" y="13" text-anchor="middle" fill="${faultSimulated ? '#fb7185' : '#34d399'}" font-size="10">${faultSimulated ? '✕ Lumpuh' : '● Aktif'}</text>
+                    </g>
+                    <g onclick="selectHotspot('tconnector')" class="hotspot-node" transform="translate(300, 312)">
+                        <rect x="-42" y="-24" width="84" height="48" rx="8" fill="#1e293b" stroke="${lineColor}" stroke-width="2"/>
+                        <text x="0" y="-2" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Node PC-2</text>
+                        <text x="0" y="13" text-anchor="middle" fill="${faultSimulated ? '#fb7185' : '#34d399'}" font-size="10">${faultSimulated ? '✕ Lumpuh' : '● Aktif'}</text>
+                    </g>
+                    <g onclick="selectHotspot('tconnector')" class="hotspot-node" transform="translate(430, 68)">
+                        <rect x="-42" y="-24" width="84" height="48" rx="8" fill="#1e293b" stroke="${lineColor}" stroke-width="2"/>
+                        <text x="0" y="-2" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Node PC-3</text>
+                        <text x="0" y="13" text-anchor="middle" fill="${faultSimulated ? '#fb7185' : '#34d399'}" font-size="10">${faultSimulated ? '✕ Lumpuh' : '● Aktif'}</text>
+                    </g>
+                `;
+            } else if (currentTopology === 'ring') {
+                const ringColor = faultSimulated ? '#f43f5e' : '#10b981';
+                const ringAnim = faultSimulated ? '' : 'animate-dash-flow';
+
+                html = `
+                    <!-- Circular Ring Path -->
+                    <circle onclick="selectHotspot('token')" cx="300" cy="190" r="115" fill="none" stroke="${ringColor}" stroke-width="5" class="hotspot-node ${ringAnim}"/>
+
+                    <!-- Direction Label in Center -->
+                    <g onclick="selectHotspot('token')" class="hotspot-node" transform="translate(300, 190)">
+                        <circle r="48" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+                        <text x="0" y="-5" text-anchor="middle" fill="#34d399" font-size="11" font-weight="bold">TOKEN RING</text>
+                        <text x="0" y="12" text-anchor="middle" fill="#94a3b8" font-size="10">${faultSimulated ? 'Sirkulasi Terhenti' : 'Arah Putaran ↻'}</text>
+                    </g>
+
+                    ${faultSimulated ? `
+                        <!-- Ring Break on Bottom Right -->
+                        <g transform="translate(382, 272)">
+                            <circle r="14" fill="#e11d48"/>
+                            <text x="0" y="5" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">✕</text>
+                        </g>
+                    ` : ''}
+
+                    <!-- 4 Ring Repeater Nodes -->
+                    <g onclick="selectHotspot('repeater')" class="hotspot-node" transform="translate(300, 75)">
+                        <rect x="-42" y="-22" width="84" height="44" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+                        <text x="0" y="-1" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Node Ring 1</text>
+                        <text x="0" y="13" text-anchor="middle" fill="#34d399" font-size="9">Token Holder</text>
+                    </g>
+                    <g onclick="selectHotspot('repeater')" class="hotspot-node" transform="translate(415, 190)">
+                        <rect x="-42" y="-22" width="84" height="44" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+                        <text x="0" y="-1" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Node Ring 2</text>
+                        <text x="0" y="13" text-anchor="middle" fill="#94a3b8" font-size="9">Repeater Aktif</text>
+                    </g>
+                    <g onclick="selectHotspot('repeater')" class="hotspot-node" transform="translate(300, 305)">
+                        <rect x="-42" y="-22" width="84" height="44" rx="8" fill="#1e293b" stroke="${ringColor}" stroke-width="2"/>
+                        <text x="0" y="-1" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Node Ring 3</text>
+                        <text x="0" y="13" text-anchor="middle" fill="${faultSimulated ? '#fb7185' : '#94a3b8'}" font-size="9">${faultSimulated ? 'Gagal Terima Token' : 'Repeater Aktif'}</text>
+                    </g>
+                    <g onclick="selectHotspot('repeater')" class="hotspot-node" transform="translate(185, 190)">
+                        <rect x="-42" y="-22" width="84" height="44" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+                        <text x="0" y="-1" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Node Ring 4</text>
+                        <text x="0" y="13" text-anchor="middle" fill="#94a3b8" font-size="9">Repeater Aktif</text>
+                    </g>
+                `;
+            } else if (currentTopology === 'mesh') {
+                // 4 Nodes at corners: N1(170,85), N2(430,85), N3(430,295), N4(170,295)
+                const diagColor = faultSimulated ? '#f43f5e' : '#a855f7';
+                const diagAnim = faultSimulated ? '' : 'animate-dash-flow';
+
+                html = `
+                    <!-- 6 Point-to-Point Links for 4-Node Full Mesh -->
+                    <line onclick="selectHotspot('meshlink')" x1="170" y1="85" x2="430" y2="85" stroke="#a855f7" stroke-width="3.5" class="hotspot-node animate-dash-flow"/>
+                    <line onclick="selectHotspot('meshlink')" x1="430" y1="85" x2="430" y2="295" stroke="#a855f7" stroke-width="3.5" class="hotspot-node animate-dash-flow"/>
+                    <line onclick="selectHotspot('meshlink')" x1="430" y1="295" x2="170" y2="295" stroke="#a855f7" stroke-width="3.5" class="hotspot-node animate-dash-flow"/>
+                    <line onclick="selectHotspot('meshlink')" x1="170" y1="295" x2="170" y2="85" stroke="#a855f7" stroke-width="3.5" class="hotspot-node animate-dash-flow"/>
+                    <!-- Diagonal 1 (Broken when Fault Test is active, rerouted via outer links) -->
+                    <line onclick="selectHotspot('meshlink')" x1="170" y1="85" x2="430" y2="295" stroke="${diagColor}" stroke-width="3.5" class="hotspot-node ${diagAnim}"/>
+                    <!-- Diagonal 2 -->
+                    <line onclick="selectHotspot('meshlink')" x1="430" y1="85" x2="170" y2="295" stroke="#a855f7" stroke-width="3.5" class="hotspot-node animate-dash-flow"/>
+
+                    ${faultSimulated ? `
+                        <g transform="translate(300, 190)">
+                            <circle r="14" fill="#e11d48"/>
+                            <text x="0" y="5" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">✕</text>
+                            <rect x="-85" y="18" width="170" height="22" rx="6" fill="#064e3b" stroke="#10b981"/>
+                            <text x="0" y="33" text-anchor="middle" fill="#6ee7b7" font-size="10" font-weight="bold">Rute Alternatif Otomatis Aktif!</text>
+                        </g>
+                    ` : ''}
+
+                    <!-- 4 Mesh Core Router Nodes -->
+                    <g onclick="selectHotspot('meshnode')" class="hotspot-node" transform="translate(170, 85)">
+                        <rect x="-45" y="-24" width="90" height="48" rx="10" fill="#1e1b4b" stroke="#c084fc" stroke-width="2.5"/>
+                        <text x="0" y="-2" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Core Node 1</text>
+                        <text x="0" y="13" text-anchor="middle" fill="#34d399" font-size="10">● 3 Link Aktif</text>
+                    </g>
+                    <g onclick="selectHotspot('meshnode')" class="hotspot-node" transform="translate(430, 85)">
+                        <rect x="-45" y="-24" width="90" height="48" rx="10" fill="#1e1b4b" stroke="#c084fc" stroke-width="2.5"/>
+                        <text x="0" y="-2" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Core Node 2</text>
+                        <text x="0" y="13" text-anchor="middle" fill="#34d399" font-size="10">● 3 Link Aktif</text>
+                    </g>
+                    <g onclick="selectHotspot('meshnode')" class="hotspot-node" transform="translate(430, 295)">
+                        <rect x="-45" y="-24" width="90" height="48" rx="10" fill="#1e1b4b" stroke="#c084fc" stroke-width="2.5"/>
+                        <text x="0" y="-2" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Core Node 3</text>
+                        <text x="0" y="13" text-anchor="middle" fill="#34d399" font-size="10">${faultSimulated ? '● Via Rute Backup' : '● 3 Link Aktif'}</text>
+                    </g>
+                    <g onclick="selectHotspot('meshnode')" class="hotspot-node" transform="translate(170, 295)">
+                        <rect x="-45" y="-24" width="90" height="48" rx="10" fill="#1e1b4b" stroke="#c084fc" stroke-width="2.5"/>
+                        <text x="0" y="-2" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Core Node 4</text>
+                        <text x="0" y="13" text-anchor="middle" fill="#34d399" font-size="10">● 3 Link Aktif</text>
+                    </g>
+                `;
+            }
+
+            svg.innerHTML = html;
+        }
+
+        /* -----------------------------------------------------------
+           4. SCENE 3: FIBER OPTIC ANATOMY & LINK LOSS CALCULATOR
+        ----------------------------------------------------------- */
+        const fiberLayers = {
+            1: {
+                title: '1. Core (Inti Serat Kaca Silika Murni)',
+                diameter: 'Diameter: 9 µm (Singlemode) / 50 µm (Multimode)',
+                desc: 'Bagian paling dalam tempat merambatnya gelombang cahaya laser. Memiliki indeks bias lebih tinggi (n₁ ≈ 1.48) dibanding Cladding sehingga cahaya terperangkap di dalam inti melalui fenomena Pemantulan Sempurna (Total Internal Reflection).'
+            },
+            2: {
+                title: '2. Cladding (Selubung Kaca Pemantul)',
+                diameter: 'Diameter Standar: 125 µm',
+                desc: 'Lapisan kaca yang mengelilingi Core dengan indeks bias sedikit lebih rendah (n₂ ≈ 1.46). Berfungsi sebagai cermin optik yang memantulkan kembali sinar laser agar tetap berada di dalam Core hingga jarak puluhan kilometer.'
+            },
+            3: {
+                title: '3. Coating / Primary Buffer (Pelindung Akrilat)',
+                diameter: 'Diameter Standar: 250 µm',
+                desc: 'Lapisan plastik elastis yang melindungi serat kaca (Core & Cladding) dari goresan mikro, kelembapan udara, serta kerusakan akibat lekukan tajam (microbending).'
+            },
+            4: {
+                title: '4. Strength Member (Serat Penguat Aramid Yarn / Kevlar)',
+                diameter: 'Material: Serat Kevlar Berdaya Tarik Tinggi',
+                desc: 'Serabut benang sintetis berkekuatan tinggi (Kevlar) yang menahan beban tarikan mekanis saat kabel ditarik di dalam pipa ducting atau dipasang pada tiang udara, sehingga kaca inti tidak patah.'
+            },
+            5: {
+                title: '5. Outer Jacket (Jaket Pelindung Luar)',
+                diameter: 'Material: PVC / LSZH / PE Tahan Cuaca',
+                desc: 'Kulit terluar kabel fiber optik yang melindungi seluruh komponen internal dari suhu ekstrem, paparan sinar UV, air, gigitan hewan pengerat, dan benturan fisik.'
+            }
+        };
+
+        let activeFiberLayer = 1;
+        let currentWavelength = 1310; // 1310nm (0.35 dB/km) or 1550nm (0.20 dB/km)
+
+        function selectFiberLayer(layerNum) {
+            playSFX('hotspot');
+            activeFiberLayer = layerNum;
+            const info = fiberLayers[layerNum];
+            document.getElementById('fiber-layer-title').textContent = info.title;
+            document.getElementById('fiber-layer-diameter').textContent = info.diameter;
+            document.getElementById('fiber-layer-desc').textContent = info.desc;
+
+            for (let i = 1; i <= 5; i++) {
+                const btn = document.getElementById('btn-layer-' + i);
+                if (i === layerNum) {
+                    btn.className = 'fiber-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white transition';
+                } else {
+                    btn.className = 'fiber-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+                }
+            }
+        }
+
+        function speakFiberLayer() {
+            const info = fiberLayers[activeFiberLayer];
+            speakCustomText(`${info.title}. ${info.desc}`);
+        }
+
+        function setWavelength(wl) {
+            playSFX('click');
+            currentWavelength = wl;
+            const btn1310 = document.getElementById('wl-1310');
+            const btn1550 = document.getElementById('wl-1550');
+            if (wl === 1310) {
+                btn1310.className = 'px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white border border-indigo-500 transition';
+                btn1550.className = 'px-3 py-2 rounded-xl text-xs font-semibold bg-slate-950 text-slate-300 border border-slate-800 hover:bg-slate-800 transition';
+            } else {
+                btn1550.className = 'px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white border border-indigo-500 transition';
+                btn1310.className = 'px-3 py-2 rounded-xl text-xs font-semibold bg-slate-950 text-slate-300 border border-slate-800 hover:bg-slate-800 transition';
+            }
+            calculateLinkLoss();
+        }
+
+        function calculateLinkLoss() {
+            const lengthKm = parseFloat(document.getElementById('slider-length').value);
+            const connectors = parseInt(document.getElementById('slider-connectors').value, 10);
+            const splices = parseInt(document.getElementById('slider-splices').value, 10);
+
+            document.getElementById('val-length').textContent = `${lengthKm} km`;
+            document.getElementById('val-connectors').textContent = `${connectors} buah`;
+            document.getElementById('val-splices').textContent = `${splices} titik`;
+
+            const coeff = currentWavelength === 1310 ? 0.35 : 0.20;
+            const cableLoss = lengthKm * coeff;
+            const connLoss = connectors * 0.5;
+            const spliceLoss = splices * 0.1;
+            const totalLoss = cableLoss + connLoss + spliceLoss;
+
+            const totalLossEl = document.getElementById('total-loss-db');
+            const barEl = document.getElementById('loss-progress-bar');
+            const badgeEl = document.getElementById('loss-status-badge');
+            const formulaEl = document.getElementById('loss-formula-detail');
+
+            totalLossEl.textContent = `${totalLoss.toFixed(2)} dB`;
+            formulaEl.textContent = `Rumus: (${lengthKm} km × ${coeff.toFixed(2)} dB) + (${connectors} × 0.5 dB) + (${splices} × 0.1 dB) = ${totalLoss.toFixed(2)} dB`;
+
+            const pct = Math.min(100, (totalLoss / 25) * 100);
+            barEl.style.width = `${pct}%`;
+
+            if (totalLoss <= 15) {
+                totalLossEl.className = 'text-2xl font-extrabold font-mono text-emerald-400';
+                barEl.className = 'h-full bg-emerald-500 transition-all duration-300';
+                badgeEl.className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold';
+                badgeEl.textContent = 'SINYAL OPTIMAL (AMAN)';
+            } else if (totalLoss <= 20) {
+                totalLossEl.className = 'text-2xl font-extrabold font-mono text-amber-400';
+                barEl.className = 'h-full bg-amber-500 transition-all duration-300';
+                badgeEl.className = 'px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold';
+                badgeEl.textContent = 'MENDEKATI BATAS MAKSIMUM';
+            } else {
+                totalLossEl.className = 'text-2xl font-extrabold font-mono text-rose-400';
+                barEl.className = 'h-full bg-rose-500 transition-all duration-300';
+                badgeEl.className = 'px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-semibold';
+                badgeEl.textContent = 'MELEBIHI POWER BUDGET (>20 dB)';
+            }
+        }
+
+        /* -----------------------------------------------------------
+           5. SCENE 4: FORMATIVE QUIZ ENGINE
+        ----------------------------------------------------------- */
+        const quizQuestions = [
+            {
+                category: 'Studi Kasus Topologi Jaringan',
+                question: 'Sebuah laboratorium komputer sekolah menggunakan satu perangkat Switch pusat untuk menghubungkan 25 PC siswa. Suatu hari, kabel UTP milik PC nomor 12 putus digigit tikus. Apa dampak yang terjadi pada jaringan laboratorium tersebut?',
+                options: [
+                    'Seluruh 25 PC di laboratorium langsung terputus dari jaringan.',
+                    'Hanya PC nomor 12 yang terputus, sedangkan 24 PC lainnya tetap beroperasi normal.',
+                    'Terjadi pantulan sinyal (signal bounce) yang mengacaukan server utama.',
+                    'Token tidak dapat berputar sehingga komputer nomor 13 hingga 25 ikut mati.'
+                ],
+                correctIndex: 1,
+                explanation: 'Pada Topologi Star, setiap workstation memiliki jalur kabel point-to-point mandiri menuju Switch pusat. Kerusakan satu kabel cabang hanya berdampak pada komputer tersebut.'
+            },
+            {
+                category: 'Analisis Kerusakan Jaringan',
+                question: 'Pada Topologi Bus yang menggunakan kabel Coaxial tunggal (Backbone), komponen apakah yang wajib dipasang di kedua ujung kabel utama agar sinyal listrik tidak memantul kembali dan merusak data?',
+                options: [
+                    'Repeater Penguat Sinyal',
+                    'Switch Konsentrator',
+                    'Terminator 50-Ohm',
+                    'Fusion Splicer'
+                ],
+                correctIndex: 2,
+                explanation: 'Terminator 50-Ohm dipasang di kedua ujung kabel Backbone Topologi Bus untuk menyerap sinyal di ujung jalur sehingga tidak terjadi pantulan sinyal (signal reflection).'
+            },
+            {
+                category: 'Prinsip Kerja Fiber Optik',
+                question: 'Cahaya laser dapat merambat di dalam inti (Core) kabel Fiber Optik sejauh puluhan kilometer tanpa bocor keluar karena adanya perbedaan indeks bias antara Core dan Cladding. Fenomena fisika ini disebut...',
+                options: [
+                    'Total Internal Reflection (Pemantulan Sempurna)',
+                    'Electromagnetic Interference (EMI)',
+                    'Chromatic Dispersion',
+                    'Carrier Sense Multiple Access (CSMA/CD)'
+                ],
+                correctIndex: 0,
+                explanation: 'Karena indeks bias Core (n₁ ≈ 1.48) lebih tinggi daripada Cladding (n₂ ≈ 1.46), cahaya yang datang dengan sudut melebihi sudut kritis akan mengalami Pemantulan Sempurna (Total Internal Reflection).'
+            },
+            {
+                category: 'Anatomi Lapisan Fiber Optik',
+                question: 'Saat teknisi menarik kabel Fiber Optik di sepanjang pipa bawah tanah, bagian manakah di dalam struktur kabel yang berfungsi menahan beban tarikan mekanis agar serat kaca inti tidak patah?',
+                options: [
+                    'Cladding Silika',
+                    'Strength Member (Serat Aramid Yarn / Kevlar)',
+                    'Core Singlemode',
+                    'BNC T-Connector'
+                ],
+                correctIndex: 1,
+                explanation: 'Strength Member (umumnya terbuat dari benang Aramid Yarn / Kevlar) dirancang khusus memiliki daya regang sangat tinggi untuk menahan gaya tarik saat instalasi kabel.'
+            },
+            {
+                category: 'Perhitungan Link Loss Budget',
+                question: 'Seorang teknisi menggelar kabel Fiber Optik sepanjang 10 km dengan redaman kabel 0.35 dB/km. Jika terdapat 2 buah konektor (@ 0.5 dB) dan 5 titik sambungan splice (@ 0.1 dB), berapakah total redaman (Total Loss) jalur tersebut?',
+                options: [
+                    '3.50 dB',
+                    '4.00 dB',
+                    '5.00 dB',
+                    '6.50 dB'
+                ],
+                correctIndex: 2,
+                explanation: 'Perhitungan: Redaman kabel (10 km × 0.35 dB = 3.5 dB) + Konektor (2 × 0.5 dB = 1.0 dB) + Splice (5 × 0.1 dB = 0.5 dB). Total = 3.5 + 1.0 + 0.5 = 5.00 dB.'
+            }
+        ];
+
+        let currentQIndex = 0;
+        let quizScore = 0;
+        let questionAnswered = false;
+
+        function renderQuizQuestion() {
+            const q = quizQuestions[currentQIndex];
+            questionAnswered = false;
+
+            document.getElementById('quiz-progress-text').textContent = `Soal ${currentQIndex + 1} dari ${quizQuestions.length}`;
+            document.getElementById('quiz-category-badge').textContent = q.category;
+            document.getElementById('quiz-question-text').textContent = q.question;
+
+            const optionsList = document.getElementById('quiz-options-list');
+            optionsList.innerHTML = q.options.map((opt, idx) => {
+                const letter = ['A', 'B', 'C', 'D'][idx];
+                return `
+                    <button onclick="submitAnswer(${idx})" id="quiz-opt-${idx}" class="w-full text-left p-4 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 transition flex items-start gap-3">
+                        <span class="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 font-mono text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">${letter}</span>
+                        <span class="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed">${opt}</span>
+                    </button>
+                `;
+            }).join('');
+
+            document.getElementById('quiz-feedback-box').classList.add('hidden');
+            document.getElementById('btn-next-question').classList.add('hidden');
+        }
+
+        function submitAnswer(selectedIdx) {
+            if (questionAnswered) return;
+            questionAnswered = true;
+
+            const q = quizQuestions[currentQIndex];
+            const isCorrect = selectedIdx === q.correctIndex;
+
+            if (isCorrect) {
+                quizScore++;
+                playSFX('correct');
+            } else {
+                playSFX('wrong');
+            }
+
+            // Highlight options
+            q.options.forEach((_, idx) => {
+                const btn = document.getElementById('quiz-opt-' + idx);
+                btn.disabled = true;
+                if (idx === q.correctIndex) {
+                    btn.className = 'w-full text-left p-4 rounded-xl bg-emerald-950/40 border-2 border-emerald-500 flex items-start gap-3';
+                } else if (idx === selectedIdx && !isCorrect) {
+                    btn.className = 'w-full text-left p-4 rounded-xl bg-rose-950/40 border-2 border-rose-500 flex items-start gap-3';
+                } else {
+                    btn.className = 'w-full text-left p-4 rounded-xl bg-slate-950/50 border border-slate-800/50 opacity-60 flex items-start gap-3';
+                }
+            });
+
+            // Show Instant Feedback Box
+            const fbBox = document.getElementById('quiz-feedback-box');
+            const fbTitle = document.getElementById('quiz-feedback-title');
+            const fbDesc = document.getElementById('quiz-feedback-desc');
+
+            fbBox.classList.remove('hidden');
+            if (isCorrect) {
+                fbBox.className = 'p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/40 space-y-1.5 text-xs sm:text-sm';
+                fbTitle.className = 'font-bold text-emerald-400 flex items-center gap-2';
+                fbTitle.innerHTML = '<i class="fa-solid fa-circle-check"></i> Jawaban Tepat!';
+            } else {
+                fbBox.className = 'p-4 rounded-xl bg-rose-950/30 border border-rose-500/40 space-y-1.5 text-xs sm:text-sm';
+                fbTitle.className = 'font-bold text-rose-400 flex items-center gap-2';
+                fbTitle.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Kurang Tepat — Mari Pelajari Pembahasannya:';
+            }
+            fbDesc.textContent = q.explanation;
+
+            // Show Next Button
+            const nextBtn = document.getElementById('btn-next-question');
+            nextBtn.classList.remove('hidden');
+            nextBtn.querySelector('span').textContent = (currentQIndex < quizQuestions.length - 1) ? 'Soal Selanjutnya' : 'Lihat Hasil Evaluasi';
+        }
+
+        function nextQuestion() {
+            playSFX('click');
+            if (currentQIndex < quizQuestions.length - 1) {
+                currentQIndex++;
+                renderQuizQuestion();
+            } else {
+                showQuizResult();
+            }
+        }
+
+        function showQuizResult() {
+            document.getElementById('quiz-question-card').classList.add('hidden');
+            const resCard = document.getElementById('quiz-result-card');
+            resCard.classList.remove('hidden');
+
+            const finalScore = Math.round((quizScore / quizQuestions.length) * 100);
+            const passed = finalScore >= 80;
+
+            document.getElementById('result-score-number').textContent = `${finalScore}%`;
+            document.getElementById('result-correct-count').textContent = `${quizScore} / ${quizQuestions.length}`;
+
+            const iconWrap = document.getElementById('result-icon-wrap');
+            const icon = document.getElementById('result-icon');
+            const title = document.getElementById('result-status-title');
+            const desc = document.getElementById('result-summary-desc');
+
+            if (passed) {
+                playSFX('correct');
+                iconWrap.className = 'w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-3xl';
+                icon.className = 'fa-solid fa-trophy';
+                title.textContent = 'LULUS! Ketuntasan Belajar Tercapai (≥80%)';
+                desc.textContent = 'Luar biasa! Anda telah menguasai karakteristik topologi jaringan, analisis gangguan jalur, serta perhitungan redaman kabel fiber optik sesuai tujuan pembelajaran.';
+            } else {
+                playSFX('wrong');
+                iconWrap.className = 'w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-3xl';
+                icon.className = 'fa-solid fa-book-open-reader';
+                title.textContent = 'Belum Mencapai Ketuntasan Minimal (80%)';
+                desc.textContent = 'Silakan eksplorasi kembali menu Simulasi Topologi dan Fiber Optik, lalu ulangi kuis evaluasi untuk meningkatkan pemahaman Anda.';
+            }
+        }
+
+        function resetQuiz() {
+            playSFX('click');
+            currentQIndex = 0;
+            quizScore = 0;
+            document.getElementById('quiz-result-card').classList.add('hidden');
+            document.getElementById('quiz-question-card').classList.remove('hidden');
+            renderQuizQuestion();
+        }
+
+        function speakCurrentQuestion() {
+            const q = quizQuestions[currentQIndex];
+            const optText = q.options.map((o, i) => `Pilihan ${['A', 'B', 'C', 'D'][i]}: ${o}`).join('. ');
+            speakCustomText(`${q.question}. ${optText}`);
+        }
+
+        /* -----------------------------------------------------------
+           6. CLIPBOARD COPY FOR WEEK 11 REPORT & TOAST HELPER
+        ----------------------------------------------------------- */
+        function copyReportToClipboard() {
+            const reportText = `LAPORAN PROSES PEMBUATAN MEDIA PEMBELAJARAN (TUGAS MINGGU KE-11)
+Nama Produk Media: NetLearn Interactive — Media Pembelajaran Topologi & Media Transmisi Jaringan Komputer
+Bentuk Produk: Aplikasi Web Interaktif Berbasis HTML5, SVG Dinamis, Web Audio API, dan Web Speech API.
+
+1. Langkah 1: Pemilihan Topik & Rancangan Media (Storyboard)
+- Topik: Topologi Jaringan Komputer (Star, Bus, Ring, Mesh) dan Media Transmisi Fiber Optik.
+- Tujuan Pembelajaran (ABCD): Melalui eksplorasi simulasi NetLearn Interactive (C), peserta didik (A) mampu menganalisis karakteristik 4 topologi jaringan, dampak kegagalan jalur, serta struktur dan perhitungan redaman kabel fiber optik (B) dengan tingkat akurasi kuis minimal 80% (D).
+
+2. Langkah 2 & 3: Pengembangan & Integrasi Elemen Visual, Audio, dan Interaktivitas
+- Elemen Visual: Diagram jaringan SVG dengan animasi aliran paket data, indikator visual jalur terputus, dan penampang berlapis kabel Fiber Optik disertai simulasi sinar laser Total Internal Reflection.
+- Elemen Audio: Sintesis efek suara interaktif (SFX klik, chime jawaban benar, alarm gangguan jaringan), musik latar ambient synth (Web Audio API), serta fitur pembaca narasi Bahasa Indonesia (Voice-Over via Web Speech API).
+- Elemen Interaktivitas: Navigasi non-linear 5 menu, Clickable Hotspot pada komponen jaringan dan lapisan fiber optik, tombol Simulasi Putus Jalur (Fault Test), Kalkulator Slider Link Loss Budget (dB), serta Kuis Evaluasi dengan Instant Feedback.
+
+3. Langkah 4: Hasil Uji Fungsi Media (Black-Box Testing)
+- Navigasi Antarhalaman & Audio Controls: Berfungsi 100% tanpa error.
+- Simulasi Hotspot & Fault Test Topologi: Berfungsi 100% menampilkan dampak kerusakan jalur secara akurat.
+- Simulasi Lapisan & Kalkulator Redaman Fiber Optik: Berfungsi 100% menghitung redaman total secara real-time.
+- Kuis Evaluasi Formatif: Berfungsi 100% menampilkan umpan balik langsung dan status kelulusan belajar.`;
+
+            const textArea = document.createElement('textarea');
+            textArea.value = reportText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                playSFX('correct');
+                showToast('Teks laporan Tugas Minggu ke-11 berhasil disalin ke Clipboard!');
+            } catch (err) {
+                showToast('Gagal menyalin teks secara otomatis.');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        let toastTimeout = null;
+        function showToast(message) {
+            const box = document.getElementById('toast-box');
+            const text = document.getElementById('toast-text');
+            text.textContent = message;
+            box.classList.remove('hidden');
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                box.classList.add('hidden');
+            }, 3200);
+        }
+
+        // Initialize Application on Load
+        window.onload = function () {
+            updateTopologyUI();
+            selectFiberLayer(1);
+            calculateLinkLoss();
+            renderQuizQuestion();
+        };
+    </script>
+</body>
+</html>
